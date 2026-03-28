@@ -1,178 +1,161 @@
-# Multi-Agent Collaboration for Coherent Long-Video Music Synthesis
+# VidMuse: A Simple Video-to-Music Generation Framework with Long-Short-Term Modeling 🎶
 
-> **Notice**: This code repository is directly related to the manuscript *"Multi-Agent Collaboration for Coherent Long-Video Music Synthesis"* currently submitted to *The Visual Computer*. If you use this code or data in your research, please cite our paper as indicated below.
+**This project has been accepted to CVPR 2025! 🚀🚀🚀**
 
-## Overview
+[![arXiv](https://img.shields.io/badge/arXiv-2406.04321-brightgreen.svg?style=flat-square)](https://arxiv.org/pdf/2406.04321)   [![githubio](https://img.shields.io/badge/GitHub.io-Project-blue?logo=Github&style=flat-square)](https://vidmuse.github.io/) [![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-blue)](https://huggingface.co/HKUSTAudio/VidMuse)
 
-This repository contains the official implementation of our hierarchical multi-agent framework for generating semantically consistent, temporally aligned, and stylistically coherent music for long videos. Our approach integrates storyboard-based semantic structuring, a dual-path feature fusion mechanism, and a closed-loop self-correction strategy to address the challenges of long-video music synthesis.
+**This is the official repository for "[VidMuse: A Simple Video-to-Music Generation Framework with Long-Short-Term Modeling](https://arxiv.org/pdf/2406.04321)".**
 
-## Citation
+## 📺 Demo Video
 
-If you find this work useful for your research, please cite our paper:
+[![Watch the video](https://github.com/user-attachments/assets/54107f99-2399-49ea-aa8e-131b7170d617)](https://www.youtube.com/watch?v=DbZbzcVI6qg)
 
-```bibtex
-@article{zhao2026multi,
-  title={Multi-Agent Collaboration for Coherent Long-Video Music Synthesis},
-  author={Zhao, Yi-Pin},
-  journal={The Visual Computer},
-  year={2026},
-  publisher={Springer}
+
+
+## ✨ Abstract
+
+In this work, we systematically study music generation conditioned solely on the video.
+First, we present the large-scale dataset V2M, which comprises 360K video-music pairs and includes various genres such as movie trailers, advertisements, and documentaries.
+Furthermore, we propose VidMuse, a simple framework for generating music aligned with video inputs. VidMuse stands out by producing high-fidelity music that is both acoustically and semantically aligned with the video. By incorporating local and global visual cues, VidMuse enables the creation of musically coherent audio tracks that consistently match the video content through Long-Short-Term modeling. Through extensive experiments, VidMuse outperforms existing models in terms of audio quality, diversity, and audio-visual alignment.
+
+## ✨ Data Construction
+
+![data_pipeline](https://github.com/ZeyueT/VidMuse/assets/126848881/91562024-3feb-4d56-8f1f-5c58a79187ab)
+**Dataset Construction.** To ensure data quality, V2M goes through rule-based coarse filtering and content-based fine-grained filtering. Music source separation is applied to remove speech and singing signals in the audio. After processing, human experts curate the benchmark subset, while the remaining data is used as the pretraining dataset. The pretrain data is then refined using Audio-Visual Alignment Ranking to select the finetuning dataset.
+
+## ✨ Method
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/cd0444cc-dfc9-4498-b082-8c853ec2aa06" alt="method">
+</p>
+
+
+
+<p align="center"><strong>Overview of the VidMuse Framework.</strong></p>
+
+## 🛠️ Environment Setup
+
+- Create Anaconda Environment:
+  AudioCraft requires Python 3.9, PyTorch 2.1.0.
+  
+  ```bash
+  git clone https://github.com/ZeyueT/VidMuse.git; cd VidMuse
+  ```
+  
+  ```bash
+  conda create -n VidMuse python=3.9
+  conda activate VidMuse
+  pip install git+https://github.com/ZeyueT/VidMuse.git
+  ```
+- Install ffmpeg:
+  
+  ```bash
+  sudo apt-get install ffmpeg
+  # Or if you are using Anaconda or Miniconda
+  conda install "ffmpeg<5" -c conda-forge
+  ```
+
+## 🔮 Pretrained Weights
+
+- Please download the pretrained Audio Compression checkpoint [compression_state_dict.bin](https://huggingface.co/HKUSTAudio/VidMuse/blob/main/compression_state_dict.bin) and VidMuse model checkpoint [state_dict.bin](https://huggingface.co/HKUSTAudio/VidMuse/blob/main/state_dict.bin), put them into the directory `'./model'`. (The VidMuse model is trained with our private dataset.)
+  ```bash
+  mkdir -p model
+  wget https://huggingface.co/HKUSTAudio/VidMuse/resolve/main/compression_state_dict.bin -O model/compression_state_dict.bin
+  wget https://huggingface.co/HKUSTAudio/VidMuse/resolve/main/state_dict.bin -O model/state_dict.bin
+
+  ```
+
+## 🎞 Web APP
+
+- Use the gradio demo locally by running:
+  
+  ```bash
+  python -m demos.VidMuse_app --share
+  ```
+  
+  In the Gradio application, the Model Path field is used to specify the location of the model files. To correctly load the model, set the Model Path to `'./model'`.
+
+## 🔥 Training
+
+- Build data.jsonl file:
+  
+  ```bash
+  python egs/V2M/build_data_jsonl.py
+  ```
+- Start training:
+  
+  ```bash
+  bash train.sh
+  ```
+
+## 📥 Importing / Exporting models
+
+- To export the trained model, use the following script:
+  
+  ```python
+  import os
+  import torch
+  from audiocraft.utils import export
+  from audiocraft import train
+
+  # Define codec_model
+  codec_model = 'facebook/encodec_32khz'
+  xp = train.main.get_xp_from_sig('SIG')
+
+  model_save_path = './model'
+
+  # Export model
+  export.export_lm(xp.folder / 'checkpoint.th', model_save_path + '/state_dict.bin')
+  export.export_pretrained_compression_model(codec_model, model_save_path + '/compression_state_dict.bin')
+  ```
+
+## 🎯 Infer
+
+- **Quick Start with Hugging Face:**
+  You can quickly start inference using the Hugging Face model hub. Refer to the [VidMuse on Hugging Face](https://huggingface.co/HKUSTAudio/VidMuse) for detailed instructions.
+
+- **Local Inference:**
+  Before running the inference script, make sure to define the following parameters in `infer.sh`:
+  - `model_path`: Path to the model directory. This is where the model files are stored. Default is `'./model'`.
+  - `video_dir`: Directory containing the videos for inference. This is where the input videos are located. Default is `'./dataset/example/infer'`.
+  - `output_dir`: Directory where the output generated music will be saved. Default is `'./result/'`.
+
+- Run the inference using the following script:
+
+  ```bash
+  bash infer.sh
+  ```
+
+## 🧱 Dataset & Dataset Construction
+
+- The dataset has been released on [Hugging Face](https://huggingface.co/datasets/HKUSTAudio/VidMuse-V2M-Dataset).
+- Data construction details to be released...
+
+## 🤗 Acknowledgement
+
+- [Audiocraft](https://github.com/facebookresearch/audiocraft): the codebase we built upon.
+
+## 🚀 Citation
+
+If you find our work useful, please consider citing:
+
+```
+@inproceedings{tian2025vidmuse,
+  title={Vidmuse: A simple video-to-music generation framework with long-short-term modeling},
+  author={Tian, Zeyue and Liu, Zhaoyang and Yuan, Ruibin and Pan, Jiahao and Liu, Qifeng and Tan, Xu and Chen, Qifeng and Xue, Wei and Guo, Yike},
+  booktitle={Proceedings of the Computer Vision and Pattern Recognition Conference},
+  pages={18782--18793},
+  year={2025}
 }
 ```
 
-## Installation
+## 📭 Contact
 
-### Prerequisites
+If you have any comments or questions, feel free to contact Zeyue Tian(ztianad@connect.ust.hk), Zhaoyang Liu(zyliumy@gmail.com).
 
-- Python 3.8 or higher
-- PyTorch 2.0 or higher
-- NVIDIA GPU with at least 16GB memory (four A100 80GB GPUs recommended for training)
-- CUDA 11.7 or higher
+## License
 
-### Setup Environment
+Please follow [CC-BY-NC](./LICENSE).
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/long-video-music-synthesis.git
-cd long-video-music-synthesis
+<hr>
 
-# Create and activate conda environment
-conda create -n lvms python=3.10
-conda activate lvms
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install the package in editable mode
-pip install -e .
-```
-
-### Dependencies
-
-Key packages are listed in `requirements.txt`, including:
-
-- torch>=2.0.0
-- transformers>=4.30.0
-- diffusers>=0.21.0
-- einops>=0.6.0
-- librosa>=0.10.0
-- opencv-python>=4.8.0
-- scikit-learn>=1.3.0
-- tqdm>=4.65.0
-- wandb>=0.15.0 (optional, for experiment tracking)
-
-## Data Preparation
-
-### Datasets
-
-Our method is evaluated on the following datasets:
-
-1. **V2M-bench**: Standardized evaluation subset for video-conditioned music generation
-2. **LVAS-Bench**: Long-form video benchmark with multi-scene sequences
-3. **TikTok**: Short-form user-generated videos for cross-domain generalization
-4. **AIST++**: Structured dance videos for motion-aligned audio evaluation
-
-### Download and Preprocessing
-
-```bash
-# Download datasets (example for V2M-bench)
-python scripts/download_v2m_bench.py --output_dir ./data/v2m_bench
-
-# Preprocess videos: extract frames, compute optical flow, and generate scene boundaries
-python scripts/preprocess_video.py \
-  --input_dir ./data/raw_videos \
-  --output_dir ./data/processed \
-  --scene_threshold 0.15 \
-  --keyframe_per_scene 16
-
-# Generate structured music scripts using the storyboard module
-python scripts/generate_music_script.py \
-  --video_dir ./data/processed/videos \
-  --output_dir ./data/scripts \
-  --model_path pretrained/vlm_checkpoint.pth
-```
-
-### Data Structure
-
-```
-data/
-├── v2m_bench/
-│   ├── videos/          # Original video files
-│   ├── audio/           # Ground-truth audio files
-│   ├── scripts/         # Generated structured music scripts
-│   └── splits/          # Train/val/test split definitions
-├── lvas_bench/
-│   ├── long_videos/     # Long-form video sequences
-│   ├── annotations/     # Scene boundaries and semantic labels
-│   └── metadata.json    # Dataset metadata
-└── pretrained/          # Pretrained model weights
-    ├── videomae.pth
-    ├── imagebind.pth
-    └── vlm_checkpoint.pth
-```
-
-## Usage
-
-### Training
-
-```bash
-# Single-node multi-GPU training (4x A100)
-python train.py \
-  --config configs/default.yaml \
-  --data_dir ./data/v2m_bench \
-  --output_dir ./experiments/exp_001 \
-  --gpus 0,1,2,3 \
-  --batch_size 32 \
-  --learning_rate 1e-4 \
-  --epochs 100
-
-# Key training options:
-#   --use_script: Enable storyboard-based semantic guidance (default: True)
-#   --dual_path: Enable dual-path feature fusion (default: True)
-#   --enable_refinement: Enable tree-of-thought self-correction (default: True)
-#   --lambda_semantic: Weight for semantic consistency loss (default: 1.0)
-#   --beta_alignment: Weight for temporal alignment loss (default: 1.0)
-```
-
-### Inference
-
-```bash
-# Generate music for a single video
-python infer.py \
-  --video_path ./examples/input_video.mp4 \
-  --script_path ./examples/music_script.json \
-  --checkpoint_path ./experiments/exp_001/best_model.pth \
-  --output_dir ./results \
-  --enable_correction True \
-  --quality_threshold 0.85 \
-  --max_refinement_steps 5
-
-# Batch inference on a dataset
-python infer_batch.py \
-  --data_config configs/v2m_test.yaml \
-  --checkpoint_path ./experiments/exp_001/best_model.pth \
-  --output_dir ./results/batch_eval \
-  --num_workers 8
-```
-
-### Evaluation
-
-```bash
-# Evaluate generated audio using standard metrics
-python evaluate.py \
-  --gen_dir ./results/batch_eval \
-  --ref_dir ./data/v2m_bench/audio \
-  --video_dir ./data/v2m_bench/videos \
-  --metrics fad kl fd density coverage ib desync \
-  --output_file ./results/metrics.json
-
-# Available metrics:
-#   Audio quality: FAD, KL, FD
-#   Distribution consistency: Density, Coverage
-#   Semantic alignment: ImageBind Similarity (IB)
-#   Temporal synchronization: De-Synchronization Error (DeSync)
-```
-
-## Acknowledgements
-
-We thank the developers of VideoMAE, ImageBind, and Hugging Face Transformers for their excellent open-source contributions. This work was supported by Kookmin University.
